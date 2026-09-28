@@ -114,6 +114,8 @@ Cài `log_event()` sao cho mỗi lần gọi in ra **một dòng JSON**:
 
 Một dòng — không `indent`. Cloud gom log theo dòng; JSON xuống dòng là một log
 bị vỡ thành nhiều mảnh vô nghĩa.
+`log_event()` cũng trả về chính chuỗi JSON đã ghi. `/ask` ghi event
+`ask_completed` kèm `user_id`, số token vào/ra và `cost_usd`.
 
 Có định dạng này rồi thì bạn hỏi được những câu mà `print()` không trả lời nổi:
 *"user nào tiêu nhiều tiền nhất hôm nay?"*, *"tỷ lệ lỗi 5 phút qua là bao nhiêu?"*
@@ -335,6 +337,9 @@ dùng gửi 10 request lúc 10:00:59 và 10 request lúc 10:01:01 — 20 request
 
 `spent()` đọc tổng chi tiêu tháng, `check()` chặn khi vượt, `record()` cộng dồn.
 Key theo `cost:<user>:<YYYY-MM>` nên sang tháng là tự reset.
+Key chưa có trong Redis được tính là `0.0`; `check()` trả HTTP 402 nếu chi phí
+đã ghi nhận cộng chi phí ước tính vượt ngân sách. `record()` cộng dồn bằng
+`INCRBYFLOAT` và đặt TTL 40 ngày để dữ liệu cũ tự được dọn.
 
 Rate limit và cost guard **không thay thế nhau**: 10 request/phút nghe có vẻ an
 toàn, nhưng mỗi request 50.000 token thì ngân sách bay trong vài phút.
@@ -349,6 +354,8 @@ verify_api_key (dependency)  →  limiter.check  →  guard.check
 ```
 
 Chặn **trước** khi gọi LLM. Chặn sau thì bạn vừa mất tiền vừa trả lỗi cho user.
+Response thành công gồm `answer`, `user_id`, `history_length` (số message trước
+lượt hỏi hiện tại), `cost_usd` và `tokens` với hai trường `in`/`out`.
 
 ### Thử chạy
 
@@ -422,6 +429,9 @@ Hai chi tiết bắt buộc:
   = tiền token vô hạn
 - `expire` để hội thoại cũ tự hết hạn — không thì Redis đầy dần đến khi sập
 
+Mỗi phần tử Redis List là một JSON object gồm `role` và `content`. Đọc toàn bộ
+bằng `LRANGE key 0 -1`, rồi giải mã từng phần tử theo thứ tự cũ đến mới.
+
 `ping()` phải nuốt mọi exception và trả `False`. Nó dùng cho `/ready`; một
 exception thoát ra sẽ biến readiness probe thành lỗi 500.
 
@@ -432,6 +442,9 @@ Redis sống  →  200 {"status": "ready", "redis": true}
 Redis chết  →  503 {"status": "not ready", "redis": false}
 Đang tắt    →  503 {"status": "shutting_down"}
 ```
+
+Khi đang shutdown, cả hai probe trả `shutting_down`; `/ready` kiểm tra cờ này
+trước khi gọi Redis, còn `/health` không nhận dependency và không gọi Redis.
 
 Khác `/health` ở đúng một điểm cốt lõi:
 
