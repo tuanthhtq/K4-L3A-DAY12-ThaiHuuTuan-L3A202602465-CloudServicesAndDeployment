@@ -166,11 +166,11 @@ Ghi lại **một** lỗi bạn gặp khi deploy lên cloud (build fail, health 
 timeout, sai REDIS_URL, app không đọc `$PORT`...): thông báo lỗi là gì, bạn
 tìm ra nguyên nhân bằng cách nào, và sửa ra sao?
 
-> Trong lần chạy stack để chuẩn bị deploy, Docker báo
-> `Bind for 0.0.0.0:6379 failed: port is already allocated`. Tôi đọc output của
-> `docker compose up`, sau đó dùng `docker ps` và thấy một Redis khác đang publish
-> cổng 6379 trên host. Service agent chỉ truy cập Redis qua hostname nội bộ
-> `redis:6379`, nên tôi bỏ phần publish cổng Redis khỏi `docker-compose.yml`.
-> Sau đó Redis healthy, agent khởi động được và `/health`, `/ready` đều trả 200.
-> Khi deploy cloud thật, tôi sẽ cập nhật câu này nếu gặp một lỗi đặc thù của
-> platform thay vì giữ ví dụ triển khai local này.
+> Lần deploy đầu trên Railway hoàn tất bước build nhưng khi gọi URL, cả
+> `/health` và `/ready` đều trả `502 Application failed to respond`. Tôi xác
+> nhận lỗi bằng `curl`, sau đó kiểm tra Source, Variables và Deployment Logs
+> trên Railway. Service lúc đó chưa có các biến production và chưa chạy phiên
+> bản mới nhất của cấu hình Docker. Tôi thêm `AGENT_API_KEY`, tham chiếu
+> `REDIS_URL` từ Redis service, rồi push phiên bản đã đọc đúng `$PORT` để Railway
+> redeploy. Sau lần deploy mới, `/health` trả 200, `/ready` trả 200 với
+> `redis:true`, `/ask` không key trả 401 và có key hợp lệ trả 200.
