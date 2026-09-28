@@ -1,0 +1,73 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run local checkpoint tests
+        env:
+          AGENT_API_KEY: ci-dummy-key
+          REDIS_URL: fake://
+        run: >-
+          python -m pytest tests/ -v
+          --ignore=tests/test_cp5.py
+          --ignore=tests/test_bonus_cicd.py
+          -m "not docker"
+
+  build:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build --tag day12-agent:${{ github.sha }} .
+
+  deploy:
+    name: Deploy
+    needs: [test, build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_HOOK_URL: ${{ secrets.DEPLOY_HOOK_URL }}
+      PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+    steps:
+      - name: Trigger deployment
+        if: env.DEPLOY_HOOK_URL != ''
+        run: curl --fail --silent --show-error --request POST "$DEPLOY_HOOK_URL"
+
+      - name: Report missing deploy hook
+        if: env.DEPLOY_HOOK_URL == ''
+        run: echo "DEPLOY_HOOK_URL is not configured; CI checks passed without deployment."
+
+      - name: Smoke test deployed service
+        if: env.DEPLOY_HOOK_URL != '' && env.PUBLIC_URL != ''
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            curl --fail --silent --show-error "$PUBLIC_URL/health" && exit 0
+            sleep 10
+          done
+          exit 1

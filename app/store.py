@@ -48,7 +48,7 @@ class ConversationStore:
         """Return whether Redis responds to a ping, without leaking errors."""
         try:
             return bool(self.client.ping())
-        except Exception:
+        except (redis.RedisError, ConnectionError, OSError):
             return False
 
     def append(self, user_id: str, role: str, content: str) -> None:

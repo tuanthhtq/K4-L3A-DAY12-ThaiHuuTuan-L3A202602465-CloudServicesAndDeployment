@@ -18,14 +18,22 @@ PRICE_INPUT_PER_1K = 0.00015
 PRICE_OUTPUT_PER_1K = 0.00060
 
 _TEMPLATES = [
-    "Theo mình hiểu, {q} liên quan tới cách hệ thống được đóng gói và vận hành. "
-    "Điểm mấu chốt là tách cấu hình ra khỏi code và giữ service ở trạng thái stateless.",
-    "Câu hỏi hay. {q} thường được giải quyết bằng cách chuẩn hóa môi trường chạy: "
-    "cùng một image chạy giống nhau ở laptop và trên cloud.",
-    "Ngắn gọn: {q} phụ thuộc vào ba yếu tố — cấu hình qua biến môi trường, "
-    "health check để orchestrator biết trạng thái, và giới hạn tài nguyên.",
-    "Với {q}, cách làm phổ biến trong production là đặt một lớp gateway phía trước "
-    "để lo authentication, rate limiting và bảo vệ chi phí.",
+    (
+        "Theo mình hiểu, {q} liên quan tới cách hệ thống được đóng gói và vận hành. "
+        "Điểm mấu chốt là tách cấu hình ra khỏi code và giữ service ở trạng thái stateless."
+    ),
+    (
+        "Câu hỏi hay. {q} thường được giải quyết bằng cách chuẩn hóa môi trường chạy: "
+        "cùng một image chạy giống nhau ở laptop và trên cloud."
+    ),
+    (
+        "Ngắn gọn: {q} phụ thuộc vào ba yếu tố — cấu hình qua biến môi trường, "
+        "health check để orchestrator biết trạng thái, và giới hạn tài nguyên."
+    ),
+    (
+        "Với {q}, cách làm phổ biến trong production là đặt một lớp gateway phía trước "
+        "để lo authentication, rate limiting và bảo vệ chi phí."
+    ),
 ]
 
 

@@ -5,14 +5,14 @@
 #     docker compose up -d redis
 #
 # NHIỆM VỤ: bổ sung service `agent`. Yêu cầu:
-#   [ ] build từ Dockerfile trong thư mục hiện tại
-#   [ ] map cổng ra ngoài (8000:8000)
-#   [ ] KHÔNG viết secret thẳng vào file này — dùng nội suy biến môi trường
+#   [x] build từ Dockerfile trong thư mục hiện tại
+#   [x] map cổng ra ngoài (8000:8000)
+#   [x] KHÔNG viết secret thẳng vào file này — dùng nội suy biến môi trường
 #       `${AGENT_API_KEY}` (docker compose tự đọc từ file .env cùng thư mục)
-#   [ ] REDIS_URL trỏ tới `redis://redis:6379/0` — trong compose, tên service
+#   [x] REDIS_URL trỏ tới `redis://redis:6379/0` — trong compose, tên service
 #       chính là hostname
-#   [ ] depends_on: redis
-#   [ ] healthcheck gọi /health
+#   [x] depends_on: redis
+#   [x] healthcheck gọi /health
 #
 # MỞ RỘNG TÙY CHỌN: thêm service `nginx` làm load balancer
 # (không phải bonus chấm điểm riêng; nginx/nginx.conf đã có sẵn)
@@ -25,8 +25,6 @@ services:
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
-    ports:
-      - "6379:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -37,7 +35,7 @@ services:
 
   agent:
     build: .
-    port:
+    ports:
       - "8000:8000"
     depends_on:
       redis:

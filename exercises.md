@@ -3,10 +3,10 @@
 > **Bài làm cá nhân.** Trả lời bằng lời của chính bạn, dựa trên những gì bạn
 > quan sát được khi chạy code — không sao chép đáp án của người khác.
 >
-> Cách trả lời: thay dòng `> *Câu trả lời của bạn*` bằng câu trả lời.
+> Cách trả lời: thay dòng trả lời mẫu bên dưới mỗi câu bằng nội dung của bạn.
 > `grade.py` đếm số câu đã trả lời (15 điểm cho 10 câu).
 >
-> Họ và tên: ..........................  Mã học viên: ..........................
+> Họ và tên: Thái Hữu Tuấn  Mã học viên: L3A202602465
 
 ---
 
@@ -16,7 +16,12 @@ Trong `Settings`, `agent_api_key` không có giá trị mặc định nên app c
 khi khởi động nếu thiếu biến môi trường. Hãy mô tả một tình huống cụ thể mà
 việc "chết sớm" này cứu bạn, so với việc để mặc định `"changeme"`.
 
-> *Câu trả lời của bạn*
+> Một tình huống cụ thể là lúc deploy phiên bản mới nhưng quên cấu hình
+> `AGENT_API_KEY` trên platform. Nếu khóa có mặc định là `"changeme"`, service
+> vẫn báo khởi động thành công và endpoint `/ask` có thể bị người khác gọi bằng
+> khóa dễ đoán, làm phát sinh chi phí. Khi trường này bắt buộc, process dừng ngay
+> ở bước khởi động và log chỉ thẳng biến còn thiếu, nên tôi sửa cấu hình trước
+> khi service nhận traffic.
 
 ---
 
@@ -26,7 +31,16 @@ Chạy service và gọi `/ask` vài lần. Dán một dòng log JSON bạn thu 
 nêu **hai** việc bạn làm được với dòng log đó mà `print("đã trả lời xong")`
 không làm được.
 
-> *Câu trả lời của bạn*
+> Dòng log tôi thu được khi gọi `/ask`:
+>
+> ```json
+> {"event":"ask_completed","level":"info","timestamp":"2026-09-28T13:08:01.882649+00:00","user_id":"exercise-user","tokens_in":2,"tokens_out":34,"cost_usd":2.07e-05}
+> ```
+>
+> Với log này tôi có thể lọc và đếm số lần `ask_completed` theo `user_id` để
+> điều tra người dùng nào gọi nhiều, đồng thời tổng hợp `cost_usd` hoặc số token
+> để tạo dashboard và cảnh báo chi phí. Một câu `print("đã trả lời xong")` không
+> có cấu trúc trường, thời gian, user hay chi phí để máy truy vấn chính xác.
 
 ---
 
@@ -42,12 +56,17 @@ docker images | grep agent
 
 | Bản | Dung lượng |
 |-----|-----------|
-| 1 stage (bản đầu) | ... MB |
-| Multi-stage | ... MB |
+| 1 stage (bản đầu) | 1.73 GB |
+| Multi-stage | 271 MB |
 
 Giải thích: phần dung lượng chênh lệch đó là những gì?
 
-> *Câu trả lời của bạn*
+> Tôi build bản một stage từ Dockerfile ban đầu dùng `python:3.11` và đo được
+> 1.73 GB; bản hiện tại dùng `python:3.11-slim` và multi-stage là 271 MB. Phần
+> chênh lệch chủ yếu đến từ base image Python đầy đủ chứa nhiều công cụ và thư
+> viện hệ thống không cần ở runtime. Multi-stage chỉ mang dependency đã cài từ
+> builder sang runtime slim, không mang toàn bộ môi trường build và các file
+> không cần thiết vào image chạy thật.
 
 ---
 
@@ -57,7 +76,12 @@ Sửa một ký tự trong `app/main.py` rồi build lại. Với Dockerfile c�
 layer nào được dùng lại từ cache, layer nào phải chạy lại? Nếu bạn đặt
 `COPY . .` lên trước `RUN pip install` thì kết quả khác thế nào?
 
-> *Câu trả lời của bạn*
+> Sau khi tôi thay đổi một dòng trong `app/main.py` rồi build lại, các layer
+> `WORKDIR`, `COPY requirements.txt`, `pip install` và copy dependency từ
+> builder đều hiện `CACHED`. Layer `COPY app ./app` và các layer đứng sau nó
+> phải chạy lại. Nếu đặt `COPY . .` trước `RUN pip install`, mọi thay đổi source
+> đều làm checksum của layer copy đổi, khiến Docker phải cài lại toàn bộ
+> dependency dù `requirements.txt` không thay đổi.
 
 ---
 
@@ -67,7 +91,13 @@ Container mặc định chạy bằng root. Mô tả chuỗi sự kiện dẫn t
 trong code Python của bạn" tới "kẻ tấn công có quyền cao trên máy host", và
 lệnh `USER` cắt đứt chuỗi đó ở chỗ nào.
 
-> *Câu trả lời của bạn*
+> Nếu code Python có lỗ hổng thực thi lệnh, kẻ tấn công trước hết chạy lệnh với
+> quyền của process trong container. Khi container chạy root, kết hợp thêm cấu
+> hình nguy hiểm như privileged mode, mount Docker socket hoặc một lỗ hổng thoát
+> container, quyền root đó có thể bị dùng để sửa file hoặc chiếm quyền cao trên
+> host. Lệnh `USER appuser` cắt chuỗi ở bước đầu: mã bị khai thác chỉ có quyền
+> của user thường trong container. Nó không thay thế việc vá lỗ hổng, nhưng làm
+> giảm đáng kể phạm vi thiệt hại nếu ứng dụng bị chiếm quyền.
 
 ---
 
@@ -78,7 +108,11 @@ phút đồng hồ (reset lúc giây 00), một người dùng có thể gửi t
 request trong 2 giây liên tiếp khi hạn mức là 10/phút? Giải thích cách đạt được
 con số đó.
 
-> *Câu trả lời của bạn*
+> Người dùng có thể gửi tối đa 20 request trong 2 giây: gửi 10 request ngay
+> trước thời điểm reset, ví dụ 10:00:59.x, rồi gửi thêm 10 request ngay sau đó,
+> vào 10:01:00.x. Bộ đếm theo phút coi đây là hai cửa sổ khác nhau. Sliding
+> window 60 giây vẫn nhìn thấy cả 20 request trong 60 giây gần nhất nên chặn
+> lượt thứ 11.
 
 ---
 
@@ -87,7 +121,12 @@ con số đó.
 Hai cơ chế này khác nhau ở điểm nào? Cho một tình huống mà rate limit cho qua
 nhưng cost guard phải chặn, và một tình huống ngược lại.
 
-> *Câu trả lời của bạn*
+> Rate limit giới hạn tốc độ request trong cửa sổ ngắn, còn cost guard giới hạn
+> tổng tiền đã dùng trong cả tháng. Một user chỉ gọi một request/phút nên rate
+> limit cho qua, nhưng nếu đã gần hết ngân sách và request mới có chi phí ước
+> tính vượt phần còn lại thì cost guard phải trả 402. Ngược lại, một user còn
+> nguyên ngân sách nhưng gửi 11 request rất rẻ gần như cùng lúc sẽ bị rate limit
+> trả 429 dù cost guard vẫn cho phép về mặt tiền.
 
 ---
 
@@ -96,7 +135,13 @@ nhưng cost guard phải chặn, và một tình huống ngược lại.
 Nếu gộp hai endpoint làm một và cho nó kiểm tra Redis, chuyện gì xảy ra với cụm
 3 container khi Redis mất kết nối 30 giây? Trả lời theo đúng thứ tự sự kiện.
 
-> *Câu trả lời của bạn*
+> Nếu Redis mất kết nối, endpoint gộp bắt đầu trả lỗi cho cả ba container. Vì
+> orchestrator dùng endpoint đó như liveness probe, nó kết luận cả ba process đã
+> hỏng và lần lượt restart chúng. Redis vẫn chưa phục hồi nên các container mới
+> lại fail probe và đi vào restart loop, làm cụm mất toàn bộ capacity dù code
+> web vẫn sống. Khi Redis trở lại, container còn phải khởi động và qua probe lại
+> mới nhận traffic. Tách `/health` và `/ready` tránh việc này: process vẫn sống,
+> còn load balancer chỉ tạm ngừng gửi request cho instance chưa ready.
 
 ---
 
@@ -106,7 +151,12 @@ Chạy `docker compose up --scale agent=3` rồi gọi `/ask` nhiều lần vớ
 `X-User-Id`. Quan sát `history_length` trong response. Nếu lịch sử được lưu
 trong một dict Python thay vì Redis, bạn sẽ thấy con số đó thay đổi thế nào?
 
-> *Câu trả lời của bạn*
+> Khi gọi cùng `X-User-Id`, tôi quan sát `history_length` lần lượt là 0, 2 và 4;
+> mỗi lượt trước thêm một message `user` và một message `assistant` vào Redis.
+> Hai `ConversationStore` khác nhau vẫn đọc được cùng dữ liệu. Nếu dùng dict
+> Python, mỗi container có một bản riêng nên request qua load balancer có thể
+> thấy các số nhảy không đều như 0, 0, 2 hoặc quay về 0 khi sang container khác;
+> restart container còn làm mất hẳn lịch sử của instance đó.
 
 ---
 
@@ -116,4 +166,11 @@ Ghi lại **một** lỗi bạn gặp khi deploy lên cloud (build fail, health 
 timeout, sai REDIS_URL, app không đọc `$PORT`...): thông báo lỗi là gì, bạn
 tìm ra nguyên nhân bằng cách nào, và sửa ra sao?
 
-> *Câu trả lời của bạn*
+> Trong lần chạy stack để chuẩn bị deploy, Docker báo
+> `Bind for 0.0.0.0:6379 failed: port is already allocated`. Tôi đọc output của
+> `docker compose up`, sau đó dùng `docker ps` và thấy một Redis khác đang publish
+> cổng 6379 trên host. Service agent chỉ truy cập Redis qua hostname nội bộ
+> `redis:6379`, nên tôi bỏ phần publish cổng Redis khỏi `docker-compose.yml`.
+> Sau đó Redis healthy, agent khởi động được và `/health`, `/ready` đều trả 200.
+> Khi deploy cloud thật, tôi sẽ cập nhật câu này nếu gặp một lỗi đặc thù của
+> platform thay vì giữ ví dụ triển khai local này.

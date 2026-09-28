@@ -12,7 +12,7 @@ from __future__ import annotations
 import time
 import uuid
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException
 
 WINDOW_SECONDS = 60
 
@@ -73,4 +73,3 @@ class RateLimiter:
         self.client.zadd(key, {f"{now}:{uuid.uuid4().hex}": now})
         self.client.expire(key, WINDOW_SECONDS)
 
-        

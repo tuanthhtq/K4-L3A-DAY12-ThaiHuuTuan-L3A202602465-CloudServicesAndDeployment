@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from functools import lru_cache
+from typing import Annotated
 
 from fastapi import Depends, FastAPI
 from fastapi.responses import JSONResponse
@@ -101,7 +102,7 @@ def health():
 
 
 @app.get("/ready")
-def ready(store: ConversationStore = Depends(get_store)):
+def ready(store: Annotated[ConversationStore, Depends(get_store)]):
     """Readiness probe — đã sẵn sàng nhận traffic chưa?
 
     TODO (CP4):
@@ -133,10 +134,10 @@ def ready(store: ConversationStore = Depends(get_store)):
 @app.post("/ask")
 def ask(
     payload: AskRequest,
-    user_id: str = Depends(verify_api_key),
-    store: ConversationStore = Depends(get_store),
-    limiter: RateLimiter = Depends(get_rate_limiter),
-    guard: CostGuard = Depends(get_cost_guard),
+    user_id: Annotated[str, Depends(verify_api_key)],
+    store: Annotated[ConversationStore, Depends(get_store)],
+    limiter: Annotated[RateLimiter, Depends(get_rate_limiter)],
+    guard: Annotated[CostGuard, Depends(get_cost_guard)],
 ):
     """Hỏi agent một câu.
 
